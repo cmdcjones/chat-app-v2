@@ -23,5 +23,8 @@ def register_user(request):
         return Response({"error": "User already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-def chat_view(request):
-    return render(request, 'index.html')
+def index(request):
+    return render(request, 'chat/index.html')
+
+def room(request, room_name):
+    return render(request, 'chat/room.html', {"room_name": room_name})
