@@ -8,7 +8,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'chat_{self.room_name}'
-        await self.channel_layer.group_add( self.room_group_name, self.channel_name)
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
         messages = await self.get_messages()
         for message in messages:
@@ -51,5 +51,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await Message.objects.acreate(room_name=room_name, sender=sender, content=content)
 
     async def get_messages(self):
-        messages = await sync_to_async(lambda: list(Message.objects.filter(room_name=self.room_name).order_by('-timestamp')[:50].values()))()
+        messages = await sync_to_async(lambda: list(Message.objects.filter(room_name=self.room_name).order_by('timestamp')[:50].values()))()
         return messages
