@@ -4,10 +4,10 @@
 
 ### MVP
 
-- [ ] Real-time communications
-- [ ] Multiple chat rooms
-- [ ] User authentication
-- [ ] Message storage
+- [x] Real-time communications
+- [x] Multiple chat rooms
+- [x] User authentication
+- [x] Message storage
 
 ### Post-MVP
 
