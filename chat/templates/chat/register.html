@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register</title>
+  </head>
+  <body>
+    <h2>Register</h2>
+    <form id="register-form" method="POST">
+      {% csrf_token %}
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required />
+      <br />
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required />
+      <br />
+      <button type="submit">Register</button>
+      <button type="button" onclick="redirectToLogin()">Login</button>
+    </form>
+    <p id="error-message" style="color: red"></p>
+
+    <script>
+      document
+        .getElementById("username").focus()
+      document
+        .getElementById("register-form")
+        .addEventListener("submit", async (event) => {
+          event.preventDefault();
+          await register();
+        });
+
+      function redirectToLogin() {
+        window.location.href = "{% url 'login_page' %}";
+      }
+
+      async function register() {
+        const formData = new FormData(event.target);
+        const response = await fetch("{% url 'register' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}",
+          },
+          body: JSON.stringify({
+            username: formData.get("username"),
+            password: formData.get("password"),
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem("access", data.access);
+          localStorage.setItem("refresh", data.refresh);
+          window.location.href = "{% url 'index' %}"; // Redirect to the chat index page
+        } else {
+          const { error } = await response.json();
+          document.getElementById("error-message").textContent = error;
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,25 +1,44 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from .models import Message
 from datetime import datetime
+from urllib.parse import parse_qs
 from asgiref.sync import sync_to_async
+from rest_framework_simplejwt.tokens import UntypedToken
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth import get_user_model
+from .models import Message
+
+User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
-        messages = await self.get_messages()
-        for message in messages:
-            await self.send(text_data=json.dumps({
-                'message': message['content'],
-                'sender': message['sender'],
-                'timestamp': message['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-            }))
+        token = parse_qs(self.scope['query_string'].decode()).get('token', None)
+        if token is None:
+            await self.close()
+            return
+        try:
+            decoded_token = UntypedToken(token[0])
+            user = await sync_to_async(User.objects.get)(id=decoded_token.payload['user_id'])
+            print(user)
+            self.scope['user'] = user
+            self.room_name = self.scope['url_route']['kwargs']['room_name']
+            self.room_group_name = f'chat_{self.room_name}'
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            await self.accept()
+            messages = await self.get_messages()
+            for message in messages:
+                await self.send(text_data=json.dumps({
+                    'message': message['content'],
+                    'sender': message['sender'],
+                    'timestamp': message['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+                }))
+        except:
+            await self.close()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        try:
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        except:
+            pass
 
     async def receive(self, text_data):
         data = json.loads(text_data)

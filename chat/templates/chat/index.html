@@ -7,12 +7,6 @@
   <body>
     What chat room would you like to enter?<br />
     <input
-      id="room-name-username"
-      type="text"
-      size="100"
-      placeholder="Enter your username"
-    /><br />
-    <input
       id="room-name-input"
       type="text"
       size="100"
@@ -22,7 +16,7 @@
     <input id="room-name-submit" type="button" value="Enter" />
 
     <script>
-      document.querySelector("#room-name-username").focus();
+      document.querySelector("#room-name-input").focus();
       document.querySelector("#room-name-input").onkeyup = function (e) {
         if (e.key === "Enter") {
           // enter, return
@@ -32,12 +26,12 @@
 
       document.querySelector("#room-name-submit").onclick = function (e) {
         var roomName = document.querySelector("#room-name-input").value;
-        var url = "/chat/" + encodeURIComponent(roomName);
-        var username = document.querySelector("#room-name-username").value;
-        if (username) {
-          url += "/?username=" + encodeURIComponent(username);
+        const accessToken = localStorage.getItem("access");
+        if (!accessToken) {
+          window.location.href = "{% url 'login_page' %}";
+        } else {
+          window.location.href = "/chat/" + roomName + "/";
         }
-        window.location.href = url;
       };
     </script>
   </body>

@@ -19,15 +19,21 @@
     </style>
   </head>
   <body>
-    <div
-      id="chat-log"
-    >
-    </div>
+    <div id="chat-log"></div>
     <input id="chat-message-input" type="text" size="100" /><br />
     <input id="chat-message-submit" type="button" value="Send" />
+    <form action="{% url 'logout_user' %}" method="post">
+      {% csrf_token %}
+      <button type="submit">Logout</button>
+    </form>
+    <p id="error-message" style="color: red"></p>
     {{ room_name|json_script:"room-name" }}
     {{ username|json_script:"username" }}
     <script>
+      const accessToken = localStorage.getItem("access");
+      if (!accessToken) {
+        window.location.href = "{% url 'login_page' %}";
+      }
       const roomName = JSON.parse(
         document.getElementById("room-name").textContent
       );
@@ -37,7 +43,7 @@
 
       const chatLog = document.getElementById("chat-log");
       const chatSocket = new WebSocket(
-        "ws://" + window.location.host + "/ws/chat/" + roomName + "/"
+        `ws://localhost:8000/ws/chat/${roomName}/?token=${accessToken}`
       );
 
       chatSocket.onmessage = function (e) {
@@ -46,7 +52,11 @@
       };
 
       chatSocket.onclose = function (e) {
-        console.error("Chat socket closed unexpectedly");
+        document.getElementById("error-message").textContent =
+          "You must be authenticated. Redirecting...";
+        setTimeout(function () {
+          window.location.href = "{% url 'login_page' %}"; // Redirect to the chat index page
+        }, 1000);
       };
 
       document.querySelector("#chat-message-input").focus();
@@ -72,7 +82,7 @@
       function addMessage(sender, message, timestamp) {
         const messageElement = document.createElement("div");
         messageElement.classList.add("message");
-        messageElement.innerHTML = `<strong>${sender}</strong>: ${message} <span style="float: right;">${timestamp}</span>`
+        messageElement.innerHTML = `<strong>${sender}</strong>: ${message} <span style="float: right;">${timestamp}</span>`;
         chatLog.appendChild(messageElement);
         chatLog.scrollTop = chatLog.scrollHeight;
       }
