@@ -14,4 +14,4 @@
 - [ ] Caching
 - [ ] Better frontend
 - [x] Presence indicator
-- [ ] Presence notification
+- [x] Presence notification

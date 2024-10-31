@@ -28,12 +28,21 @@
     </form>
     <p id="error-message" style="color: red"></p>
     <p id="typing-users" style="color: green"></p>
+    <p id="joining-users" style="color: blue"></p>
     {{ room_name|json_script:"room-name" }}
     {{ username|json_script:"username" }}
     <script>
       var isTyping = false;
-      var typingUsers = [];
       var isTypingJobId = null;
+      var typingUsers = [];
+      const typingUsersElement = document.getElementById("typing-users");
+
+      var isJoining = false;
+      var joiningUsers = [];
+      var joinedUsers = [];
+      var isJoiningJobId = null;
+      const joiningUsersElement = document.getElementById("joining-users");
+
       const accessToken = localStorage.getItem("access");
       if (!accessToken) {
         window.location.href = "{% url 'login_page' %}";
@@ -49,30 +58,74 @@
       const chatSocket = new WebSocket(
         `ws://localhost:8000/ws/chat/${roomName}/?token=${accessToken}`
       );
-      const typingUsersElement = document.getElementById("typing-users");
 
       chatSocket.onmessage = function (e) {
         const data = JSON.parse(e.data);
-        if (data.type === "started_typing") {
-          if (data.sender !== username && !typingUsers.includes(data.sender)) {
-            typingUsers.push(data.sender);
+        switch (data.type) {
+          case "started_typing": {
+            if (
+              data.sender !== username &&
+              !typingUsers.includes(data.sender)
+            ) {
+              typingUsers.push(data.sender);
+              if (typingUsers.length === 1) {
+                typingUsersElement.textContent = `${typingUsers[0]} is typing...`;
+              } else {
+                typingUsersElement.textContent = `${typingUsers.join(
+                  ", "
+                )} are typing...`;
+              }
+            }
+            break;
+          }
+          case "stopped_typing": {
+            typingUsers = typingUsers.filter((user) => user !== data.sender);
             if (typingUsers.length === 1) {
               typingUsersElement.textContent = `${typingUsers[0]} is typing...`;
+            } else if (typingUsers.length > 1) {
+              typingUsersElement.textContent = `${typingUsers.join(
+                ", "
+              )} are typing...`;
             } else {
-              typingUsersElement.textContent = `${typingUsers.join(", ")} are typing...`;
+              typingUsersElement.textContent = "";
             }
+            break;
           }
-        } else if (data.type === "stopped_typing") {
-          typingUsers = typingUsers.filter((user) => user !== data.sender);
-          if (typingUsers.length === 1) {
-            typingUsersElement.textContent = `${typingUsers[0]} is typing...`;
-          } else if (typingUsers.length > 1) {
-            typingUsersElement.textContent = `${typingUsers.join(", ")} are typing...`;
-          } else {
-            typingUsersElement.textContent = "";
+          case "user_join": {
+            if (
+              data.sender === username ||
+              joiningUsers.includes(data.sender) ||
+              joinedUsers.includes(data.sender)
+            ) {
+              break;
+            }
+            joiningUsers.push(data.sender);
+            joinedUsers.push(data.sender);
+            joiningUsersElement.textContent = `${joiningUsers.join(
+              ", "
+            )} joined the room!`;
+            if (isJoiningJobId && isJoining) {
+            console.log("users while timeout is scheduled", joiningUsers);
+              clearTimeout(isJoiningJobId);
+            }
+            isJoiningJobId = setTimeout(function () {
+              joiningUsers = joiningUsers.filter(
+                (user) => user !== data.sender
+              );
+            console.log("users after filter", joiningUsers);
+              if (joiningUsers.length === 0) {
+                isJoining = false;
+                joiningUsersElement.textContent = "";
+              } else {
+                joiningUsersElement.textContent = `${joiningUsers.join(
+                  ", "
+                )} joined the room!`;
+              }
+            }, 3000);
+            break;
           }
-        } else {
-          addMessage(data.sender, data.message, data.timestamp);
+          default:
+            addMessage(data.sender, data.message, data.timestamp);
         }
       };
 
@@ -103,8 +156,7 @@
               sender: username,
             })
           );
-        }
-        else if (
+        } else if (
           messageInputDom.value.length >= 3 &&
           isTyping &&
           isTypingJobId

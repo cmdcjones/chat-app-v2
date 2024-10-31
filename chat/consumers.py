@@ -23,6 +23,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name = f'chat_{self.room_name}'
             await self.channel_layer.group_add(self.room_group_name, self.channel_name)
             await self.accept()
+            await self.channel_layer.group_send(
+                self.room_group_name, {
+                    'type': 'user_join',
+                    'sender': user.username
+                }
+            )
             messages = await self.get_messages()
             for message in messages:
                 await self.send(text_data=json.dumps({
@@ -63,6 +69,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+    async def user_join(self, event):
+        sender = event['sender']
+        await self.send(text_data=json.dumps({
+            'type': 'user_join',
+            'sender': sender
+        }))
+
     async def chat_message(self, event):
         message = event['message']
         sender = event['sender']
@@ -76,14 +89,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def started_typing(self, event):
         sender = event['sender']
         await self.send(text_data=json.dumps({
-            'type': "started_typing",
+            'type': 'started_typing',
             'sender': sender
         }))
 
     async def stopped_typing(self, event):
         sender = event['sender']
         await self.send(text_data=json.dumps({
-            'type': "stopped_typing",
+            'type': 'stopped_typing',
             'sender': sender
         }))
 
