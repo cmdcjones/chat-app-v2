@@ -24,7 +24,13 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "django",
+  "channels",
+  "channels_redis",
+  "djangorestframework",
+  "daphne",
+]
 
 [project.urls]
 Documentation = "https://github.com/cmdcjones/chatapp#readme"
